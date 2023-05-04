@@ -3,4 +3,8 @@
 (melange.emit
  (target node)
  (alias node)
- (module_systems commonjs))
+ (module_systems commonjs)
+ ; Warning 30 is an issue since I'm using recursive types
+ ;  that share some common field names
+ (compile_flags
+  (:standard -w -30)))
