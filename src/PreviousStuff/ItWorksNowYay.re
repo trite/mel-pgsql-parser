@@ -1,13 +1,10 @@
 type unk;
 
-/* type node = { */
-
-/* }; */
-
 type resTarget = {
   name: unk,
   indirection: unk,
-  [@bs.as "val"]_val: unk
+  [@bs.as "val"]
+  _val: unk,
 };
 
 type a_expr = {
@@ -67,19 +64,20 @@ type stmt = [
 // https://docs.rs/postgres-parser/0.0.4/postgres_parser/nodes/struct.RawStmt.html
 // or https://docs.rs/crate/postgres-parser/latest/source/src/nodes.rs
 type rawStmt = {
-  stmt: stmt,
+  stmt,
   stmt_len: int,
   stmt_location: int,
 };
 
 type outerRawStmt = {
   [@bs.as "RawStmt"]
-  rawStmt: rawStmt
+  rawStmt,
 };
 
 type t = array(outerRawStmt);
 
-%raw {|
+%raw
+{|
    function wrappedParse(toParse) {
      var rawParsed = PgsqlParser.parse(toParse);
 
@@ -99,11 +97,12 @@ type t = array(outerRawStmt);
      return rawParsed
    }
 |};
-external wrappedParse : string => t = "wrappedParse";
+external wrappedParse: string => t = "wrappedParse";
 
-
-[@bs.module "pgsql-parser"] external deparse : t => string = "deparse";
-let parsed = wrappedParse({|
+[@bs.module "pgsql-parser"] external deparse: t => string = "deparse";
+let parsed =
+  wrappedParse(
+    {|
   SELECT
     a.id,
     b.id,
@@ -135,7 +134,8 @@ let parsed = wrappedParse({|
   INSERT INTO something(id, col1, col2)
   VALUES (123, "foo", "bar")
   ;
-|});
+|},
+  );
 
 // Don't necessarily print anything here yet, but running this does 2 things:
 //  1. `require("pgsql-parser")`
@@ -144,20 +144,14 @@ let parsed = wrappedParse({|
 //      which is the point of this entire exercise
 let roggle = parsed |> deparse;
 
-parsed
--> Belt_Array.forEach(
-  item =>
-  switch(item.rawStmt.stmt) {
-  | `SelectStmt(x) =>
-      Js.log(("Select Statement", x.whereClause))
+parsed->Belt_Array.forEach(item =>
+  switch (item.rawStmt.stmt) {
+  | `SelectStmt(x) => Js.log(("Select Statement", x.whereClause))
 
-  | `UpdateStmt(x) =>
-      Js.log(("Update Statement", x.targetList))
+  | `UpdateStmt(x) => Js.log(("Update Statement", x.targetList))
 
-  | `InsertStmt(x) =>
-      Js.log(("Insert Statement", x.override))
+  | `InsertStmt(x) => Js.log(("Insert Statement", x.override))
 
-  | `other(_) =>
-      Js.Exn.raiseError("Unexpected statement type!")
+  | `other(_) => Js.Exn.raiseError("Unexpected statement type!")
   }
 );
