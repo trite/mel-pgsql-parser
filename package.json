@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "bs-decode": "trite/bs-decode#version-bumps-melange",
     "pgsql-parser": "^13.5.0",
     "relude": "trite/relude#dunification"
   }

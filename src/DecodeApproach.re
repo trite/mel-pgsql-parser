@@ -1,6 +1,33 @@
-type stmt = Js.Json.t;
+module Decode = Decode.AsResult.OfParseError;
+let ((<$>), (<*>)) = Decode.(map, apply);
 
-let makeStmt = stmt => stmt;
+type stmt =
+  | Select(Js.Json.t)
+  | Insert(Js.Json.t)
+  | Update(Js.Json.t)
+  // | `A_Expr(Js.Json.t)
+  | Other(Js.Json.t);
+
+let decodeStmt =
+  Decode.(
+    {
+      let decodeSelectStmt =
+        field("SelectStmt", okJson) |> map(x => Select(x));
+      let decodeInsertStmt =
+        field("InsertStmt", okJson) |> map(x => Insert(x));
+      let decodeUpdateStmt =
+        field("UpdateStmt", okJson) |> map(x => Update(x));
+      // let decodeAExpr = field("", okJson) |> map(x => `SelectStmt(x));
+      let decodeOther = okJson |> map(x => Other(x));
+
+      oneOf(
+        decodeSelectStmt,
+        [decodeInsertStmt, decodeUpdateStmt, decodeOther],
+      );
+    }
+  );
+
+// let makeStmt = stmt => stmt;
 
 type rawStmt = {
   stmt,
@@ -14,20 +41,28 @@ let makeRawStmt = (stmt, stmt_len, stmt_location) => {
   stmt_location,
 };
 
+let decodeRawStmt =
+  Decode.(
+    makeRawStmt
+    <$> field("stmt", decodeStmt)
+    <*> field("stmt_len", intFromNumber)
+    <*> field("stmt_location", intFromNumber)
+  );
+
 type outerRawStmt = {
   [@bs.as "RawStmt"]
   rawStmt,
 };
 
-let makeOuterRawStmt = rawStmt => {
-  rawStmt;
-};
+let makeOuterRawStmt = rawStmt => {rawStmt: rawStmt};
+
+let decodeParsed =
+  Decode.(makeOuterRawStmt <$> field("RawStmt", decodeRawStmt));
 
 type parsed = array(outerRawStmt);
 
-[@bs.module "pgsql-parser"] external parse: string => Js.Json.t = "parse";
-
-// let decodeParsed = Decode.()
+[@bs.module "pgsql-parser"]
+external parse: string => array(Js.Json.t) = "parse";
 
 let testExample = {|
   SELECT
@@ -64,6 +99,26 @@ let testExample = {|
 |};
 
 let parsed = testExample |> parse;
+
+let checkStmt: stmt => unit =
+  fun
+  | Select(x) => Js.log2("Select", x)
+  | Insert(x) => Js.log2("Select", x)
+  | Update(x) => Js.log2("Select", x)
+  | Other(x) => Js.log2("Select", x);
+
+parsed
+|> Array.map(decodeParsed)
+|> Array.head
+|> Option.getOrThrow
+|> Result.fold(
+     Decode_ParseError.failureToDebugString >> Js.log2(_, "Fail"),
+     //  Js.log2("Success"),
+     x =>
+     x.rawStmt.stmt |> checkStmt
+   );
+
+// parsed |> Array.head |> Option.getOrThrow |> Js.log;
 
 // let first = parsed |> Array.head |> Option.getOrThrow;
 
