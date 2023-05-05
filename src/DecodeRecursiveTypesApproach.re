@@ -340,18 +340,14 @@ let checkStmt: stmt => unit =
   | Other(x) => Js.log2("Other", x);
 
 parsed
-|> Array.map(decodeParsed)
-|> Array.head
-|> Option.getOrThrow
-|> Result.fold(
-     Decode_ParseError.failureToDebugString >> Js.log2(_, "Fail"), x =>
-     x.rawStmt.stmt |> stmtToString |> Js.log
+|> Array.forEach(
+     decodeParsed
+     >> Result.fold(
+          Decode_ParseError.failureToDebugString >> Js.log2(_, "Fail"), x =>
+          x.rawStmt.stmt |> stmtToString |> Js.log
+        ),
    );
 
-Js.log("========");
+Js.log("\n\n========\n\n");
 
-parsed
-|> Array.head
-|> Option.getOrThrow
-|> Js.Dict.get(_, "RawStmt")
-|> Js.log;
+parsed |> Array.forEach(Js.Dict.get(_, "RawStmt") >> Js.log);
