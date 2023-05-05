@@ -11,7 +11,7 @@ and selectStmt = {
 }
 and outerSelectStmt = {
   [@bs.as "SelectStmt"]
-  selectStmt
+  selectStmt,
 }
 and fromExpr = {
   fromList: array(node),
@@ -26,15 +26,17 @@ type rawStmt = {
 
 type outerRawStmt = {
   [@bs.as "RawStmt"]
-  rawStmt: rawStmt
+  rawStmt,
 };
 
 type t = array(outerRawStmt);
 
-[@bs.module "pgsql-parser"] external parse : string => t = "parse";
-[@bs.module "pgsql-parser"] external deparse : t => string = "deparse";
+[@bs.module "pgsql-parser"] external parse: string => t = "parse";
+[@bs.module "pgsql-parser"] external deparse: t => string = "deparse";
 
-let test = parse({|
+let test =
+  parse(
+    {|
   SELECT
     a.id,
     b.id,
@@ -66,20 +68,20 @@ let test = parse({|
   INSERT INTO something(id, col1, col2)
   VALUES (123, "foo", "bar")
   ;
-|});
+|},
+  );
 
 Js.log(test);
-Js.log(test[0]);
+Js.log(test |> Array.head |> Option.getOrThrow);
 
 Js.log("=========");
 
 /* Js.log(test[0].rawStmt); */
 /* Js.log(test[0].rawStmt.stmt); */
-switch(test[0].rawStmt.stmt) {
+switch ((test |> Array.head |> Option.getOrThrow).rawStmt.stmt) {
 | SelectStmt(x) => Js.log(("x", x))
 | FromExpr(y) => Js.log(("y", y))
-}
-
+};
 
 Js.log("=========");
 Js.log(test |> deparse);

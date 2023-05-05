@@ -4,7 +4,9 @@
  (target node)
  (alias node)
  (module_systems commonjs)
+ (libraries relude bs_decode)
  ; Warning 30 is an issue since I'm using recursive types
  ;  that share some common field names
  (compile_flags
-  (:standard -w -30)))
+  (:standard -w -30)
+  (-open Relude.Globals)))

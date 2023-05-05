@@ -4,17 +4,15 @@ type unk;
 /*   fromList: option(unk) */
 /* }; */
 
-type selectStmt = {
-  fromClause: unk
-};
+type selectStmt = {fromClause: unk};
 
 type stmt = {
   [@bs.as "SelectStmt"]
-  selectStmt: selectStmt
-}
+  selectStmt,
+};
 
 type rawStmt = {
-  stmt: stmt,
+  stmt,
   stmt_len: int,
   stmt_location: int,
 };
@@ -22,9 +20,8 @@ type rawStmt = {
 
 type outerRawStmt = {
   [@bs.as "RawStmt"]
-  rawStmt: rawStmt
+  rawStmt,
 };
-
 
 /* type t = { */
 /*   rawStmt: array(rawStmt) */
@@ -33,9 +30,11 @@ type outerRawStmt = {
 type t = array(outerRawStmt);
 
 /* [@bs.module] external pgsqlparser : string => t = "pgsql-parser"; */
-[@bs.module "pgsql-parser"] external parse : string => t = "parse";
-[@bs.module "pgsql-parser"] external deparse : t => string = "deparse";
-let test = parse({|
+[@bs.module "pgsql-parser"] external parse: string => t = "parse";
+[@bs.module "pgsql-parser"] external deparse: t => string = "deparse";
+let test =
+  parse(
+    {|
   SELECT
     a.id,
     b.id,
@@ -67,19 +66,19 @@ let test = parse({|
   INSERT INTO something(id, col1, col2)
   VALUES (123, "foo", "bar")
   ;
-|});
+|},
+  );
 
 Js.log(test);
-Js.log(test[0]);
+Js.log(test |> Array.head |> Option.getOrThrow);
 Js.log("=========");
 
 /* Js.log(test[0].rawStmt); */
-Js.log(test[0].rawStmt.stmt.selectStmt);
+Js.log((test |> Array.head |> Option.getOrThrow).rawStmt.stmt.selectStmt);
 /* switch(test[0].rawStmt.stmt) { */
 /* | FromExpr(y) => Js.log(("y", y)) */
 /* | SelectStmt(x) => Js.log(("x", x)) */
 /* } */
-
 
 /* let processRawStmt = (statement: rawStmt) => */
 /*   Js.log(statement); */
@@ -88,9 +87,6 @@ Js.log(test[0].rawStmt.stmt.selectStmt);
 /* | `RawStmt(s) => */
 /*   s |> Js.log */
 /* }; */
-
-
-
 
 Js.log("=========");
 Js.log(test |> deparse);
@@ -102,20 +98,16 @@ Js.log(test |> deparse);
 /* Js.log(test[3].rawStmt.stmt); */
 /* Js.log(test[0].rawStmt.stmt ); */
 
-
-
 /* switch(test[0].rawStmt.stmt) { */
 /*   | Some(SelectStmt(x)) => Js.log(("it's x", x)) */
 /*   | Some(FromExpr(y)) => Js.log(("it's y", y)) */
 /*   | None => Js.log("Nope") */
 /* }; */
 
-
-
 /* Js.log(test[0].rawStmt.stmt); */
 /* Js.log(test[0].rawStmt.stmt); */
 /* Js.log(test[0].rawStmt); */
 /* [%bs.raw */
 /*   {| */
-/*      console.log(test[0].RawStmt) */
-/*   |}] */
+     /*      console.log(test[0].RawStmt) */
+     /*   |}] */

@@ -15,19 +15,19 @@ type a_expr = {
 }
 
 and selectStmt = {
-  distinctClause: option(list(stmt)),
+  distinctClause: option(array(stmt)),
   intoClause: unk,
-  targetList: option(list(stmt)),
-  fromClause: option(list(stmt)),
-  whereClause: option(list(stmt)),
-  groupClause: option(list(stmt)),
-  havingClause: option(list(stmt)),
-  windowClause: option(list(stmt)),
-  valuesLists: option(list(stmt)),
-  sortClause: option(list(stmt)),
-  limitOffset: option(list(stmt)),
-  limitCount: option(list(stmt)),
-  lockingClause: option(list(stmt)),
+  targetList: option(array(stmt)),
+  fromClause: option(array(stmt)),
+  whereClause: option(array(stmt)),
+  groupClause: option(array(stmt)),
+  havingClause: option(array(stmt)),
+  windowClause: option(array(stmt)),
+  valuesLists: option(array(stmt)),
+  sortClause: option(array(stmt)),
+  limitOffset: option(array(stmt)),
+  limitCount: option(array(stmt)),
+  lockingClause: option(array(stmt)),
   withClause: unk,
   op: unk,
   all: bool,
@@ -77,6 +77,7 @@ type outerRawStmt = {
 
 type t = array(outerRawStmt);
 
+// Needing this is a problem, wonder if there's a better way?
 %raw
 {|
    function wrappedParse(toParse) {
@@ -143,21 +144,195 @@ let parsed =
 //      a sign I am doing something wrong probably
 //  2. make sure I'm not doing something that breaks the deparse process
 //      which is the point of this entire exercise
-let roggle = parsed |> deparse;
+let roggle = parsed |> deparse /* |> Array.S*/;
 
 // TODO: Move array map outside this function
-let rec readParsed = parsed =>
-  parsed
-  |> Belt_Array.map(_, item =>
-       switch (item.rawStmt.stmt) {
-       | `SelectStmt(x) =>
-         // WhereClause must be checked and then looped through
-         Js.log(("Select Statement", x.whereClause |> readParsed))
-       | `UpdateStmt(x) => Js.log(("Update Statement", x.targetList))
-       | `InsertStmt(x) => Js.log(("Insert Statement", x.override))
-       | `A_Expr(x) => Js.log(("A_Expr", x))
-       | `other(_) => Js.Exn.raiseError("Unexpected statement type!")
-       }
-     );
+// let rec readParsed = parsed =>
+//   parsed
+//   |> Belt_Array.map(_, item =>
+//        switch (item.rawStmt.stmt) {
+//        | `SelectStmt(x) =>
+//          // WhereClause must be checked and then looped through
+//          Js.log(("Select Statement", x.whereClause |> readParsed))
+//        | `UpdateStmt(x) => Js.log(("Update Statement", x.targetList))
+//        | `InsertStmt(x) => Js.log(("Insert Statement", x.override))
+//        | `A_Expr(x) => Js.log(("A_Expr", x))
+//        | `other(_) => Js.Exn.raiseError("Unexpected statement type!")
+//        }
+//      );
 
-parsed |> readParsed;
+// let stmtToString: stmt => string =
+//   fun
+//   | `SelectStmt(stmt) => "Select statement";
+
+// parsed |> readParsed;
+
+let rec optArrayStmtToString: option(array(stmt)) => string =
+  optArrayStmt => {j|$optArrayStmt|j}
+// optArrayStmt
+// |> Option.fold("", x =>
+//      x |> Array.map(stmtToString) |> Array.String.joinWith(",")
+//    )
+
+and unkToString: unk => string =
+  unk => {j|Type unknown or not yet dealt with: $unk|j}
+
+and selectStmtToString: selectStmt => string =
+  (
+    {
+      distinctClause,
+      intoClause,
+      targetList,
+      fromClause,
+      whereClause,
+      groupClause,
+      havingClause,
+      windowClause,
+      valuesLists,
+      sortClause,
+      limitOffset,
+      limitCount,
+      lockingClause,
+      withClause,
+      op,
+      all,
+      larg,
+      rarg,
+    },
+  ) => {
+    let distinctClause =
+      distinctClause
+      |> Option.map(
+           Array.map(stmt => {j|
+    distinctClauseInfo: $stmt
+    |j}),
+         );
+    let intoClause = intoClause |> unkToString;
+    let targetList =
+      targetList
+      |> Option.fold("", x =>
+           x |> Array.map(stmtToString) |> Array.String.joinWith(",")
+         );
+    let fromClause = fromClause |> optArrayStmtToString;
+    let whereClause = whereClause |> optArrayStmtToString;
+    let groupClause = groupClause |> optArrayStmtToString;
+    let havingClause = havingClause |> optArrayStmtToString;
+    let windowClause = windowClause |> optArrayStmtToString;
+    let valuesLists = valuesLists |> optArrayStmtToString;
+    let sortClause = sortClause |> optArrayStmtToString;
+    let limitOffset = limitOffset |> optArrayStmtToString;
+    let limitCount = limitCount |> optArrayStmtToString;
+    let lockingClause = lockingClause |> optArrayStmtToString;
+    let withClause = withClause |> unkToString;
+    let op = op |> unkToString;
+    let all = all |> Bool.show;
+    let larg = larg |> Option.map(selectStmtToString);
+    let rarg = rarg |> Option.map(selectStmtToString);
+
+    {j|
+SelectStmt:
+  distinctClause: $distinctClause
+  intoClause: $intoClause
+  targetList: $targetList
+  fromClause: $fromClause
+  whereClause: $whereClause
+  groupClause: $groupClause
+  havingClause: $havingClause
+  windowClause: $windowClause
+  valuesLists: $valuesLists
+  sortClause: $sortClause
+  limitOffset: $limitOffset
+  limitCount: $limitCount
+  lockingClause: $lockingClause
+  withClause: $withClause
+  op: $op
+  all: $all
+  larg: $larg
+  rarg: $rarg
+      |j};
+  }
+
+and insertStmtToString: insertStmt => string =
+  (
+    {
+      relation,
+      cols,
+      selectStmt,
+      onConflictClause,
+      returningList,
+      withClause,
+      override,
+    },
+  ) => {
+    let relation = relation |> unkToString;
+    let cols = cols |> unkToString;
+    let selectStmt = selectStmt |> unkToString;
+    let onConflictClause = onConflictClause |> unkToString;
+    let returningList = returningList |> unkToString;
+    let withClause = withClause |> unkToString;
+    let override = override |> unkToString;
+
+    {j|
+InsertStmt:
+  relation: $relation
+  cols: $cols
+  selectStmt: $selectStmt
+  onConflictClause: $onConflictClause
+  returningList: $returningList
+  withClause: $withClause
+  override: $override
+  |j};
+  }
+
+and updateStmtToString: updateStmt => string =
+  (
+    {relation, targetList, whereClause, fromClause, returningList, withClause},
+  ) => {
+    let relation = relation |> unkToString;
+    let targetList = targetList |> unkToString;
+    let whereClause = whereClause |> unkToString;
+    let fromClause = fromClause |> unkToString;
+    let returningList = returningList |> unkToString;
+    let withClause = withClause |> unkToString;
+
+    {j|
+UpdateStmt:
+  relation: $relation
+  targetList: $targetList
+  whereClause: $whereClause
+  fromClause: $fromClause
+  returningList: $returningList
+  withClause: $withClause
+  |j};
+  }
+
+and aExprToString: a_expr => string = aexpr => {j|$aexpr|j}
+// ({kind, name, lexpr, rexpr}) => {
+//   let kind = kind |> unkToString;
+//   let name = name |> unkToString;
+//   let lexpr = lexpr |> unkToString;
+//   let rexpr = rexpr |> unkToString;
+
+//   {j|
+// kind: $kind
+// name: $name
+// lexpr: $lexpr
+// rexpr: $rexpr
+// |j};
+// }
+
+and stmtToString =
+  fun
+  | `SelectStmt(stmt) => stmt |> selectStmtToString
+  | `UpdateStmt(stmt) => stmt |> updateStmtToString
+  | `InsertStmt(stmt) => stmt |> insertStmtToString
+  | `A_Expr(stmt) => stmt |> aExprToString
+  | `other(something) => {j|
+====================
+  Statement type not yet known: $something
+====================
+  |j};
+
+parsed
+|> Array.map(item => item.rawStmt.stmt |> stmtToString)
+|> Array.forEach(Js.log);

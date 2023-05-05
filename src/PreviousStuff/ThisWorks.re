@@ -83,14 +83,14 @@ Js.log(test);
  ]
  */
 
-Js.log(test[0]);
+Js.log(test |> Array.head);
 /*
  {
    RawStmt: { stmt: { SelectStmt: [Object] }, stmt_len: 151, stmt_location: 0 }
  }
  */
 
-Js.log(test[0].rawStmt);
+Js.log((test |> Array.head |> Option.getOrThrow).rawStmt);
 /*
  {
    stmt: {
@@ -113,7 +113,7 @@ Js.log(test[0].rawStmt);
 /* | `SelectStmt(x) => Js.log(("Select Statement", x)) */
 /* }; */
 
-Js.log(test[0].rawStmt.stmt);
+Js.log((test |> Array.head |> Option.getOrThrow).rawStmt.stmt);
 /*
  {
    SelectStmt: {
