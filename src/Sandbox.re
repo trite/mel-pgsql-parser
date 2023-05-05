@@ -25,3 +25,5 @@ let test = test |> Js.Json.stringifyWithSpace(_, 2);
 |> List.String.joinWith("\n")
 |> (x => {j|<$x>|j})
 |> Js.log;
+
+String.repeat(-1, "blah") |> (x => {j|<$x>|j}) |> Js.log;

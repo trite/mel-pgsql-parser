@@ -301,49 +301,57 @@ let testExample = {|
 
 let parsed = testExample |> parse;
 
+type wrap = {
+  start: string,
+  end_: string,
+};
+
+let braces = {start: "{", end_: "}"};
+
+let brackets = {start: "[", end_: "]"};
+
 let indentString = (~indent, str) => {
-  let addIndent = (~indent, str) => String.repeat(indent, "  ") ++ str;
+  let addIndent = (~indent, s) =>
+    // String.repeat(indent, "  ") ++ s;
+    String.repeat(indent, {j|$indent$indent|j}) ++ s;
 
   str
   |> String.splitList(~delimiter="\n")
   |> List.map(addIndent(~indent))
-  |> List.String.joinWith("\n");
+  |> List.String.joinWith("\n")
+  |> addIndent(~indent);
 };
 
-let namedString = (~wrap: option(bool)=?, name: string, str: string) => {
-  let unwrapped = {j|$name: $str|j};
+// TODO: change this back probably
+[@ocaml.warning "-27"]
+let namedString = (~wrap: option(wrap)=?, name: string, str: string) => {
+  let nStr = {j|$name: $str|j};
 
-  let wrapped = {j|$name: {
-$str
-}|j};
-
-  wrap |> Option.fold(unwrapped, b => b ? wrapped : unwrapped);
+  wrap |> Option.fold(nStr, ({start, end_}) => {j|$start
+  $nStr
+$end_|j});
 };
 
-let indentNamedString =
-    (~wrap: option(bool)=?, ~indent, name: string, str: string) =>
+let indentNamedString = (~wrap=?, ~indent, name: string, str: string) =>
   namedString(~wrap?, name, str) |> indentString(~indent);
 
-let indentNamedJsonT = (~indent, name: string, str: Js.Json.t) => {
-  let str =
-    Js.Json.stringifyWithSpace(str, 2)
-    |> String.splitList(~delimiter="\n")
-    |> List.map(indentString(~indent))
-    |> List.String.joinWith("\n");
+let namedJsonT = (~wrap=?, name: string, json: Js.Json.t) =>
+  Js.Json.stringifyWithSpace(json, 1) |> namedString(~wrap?, name);
 
-  indentNamedString(~indent, name, str);
-};
+let indentNamedJsonT = (~indent, name: string, json: Js.Json.t) =>
+  namedJsonT(name, json) |> indentString(~indent);
 
 let rec stmtToString = (~indent, stmt) => {
-  let indent = indent + 1;
-
+  // let indent = indent + 1;
   switch (stmt) {
-  | Select(x) => x |> selectStmtToString(~indent)
+  | Select(x) => x |> selectStmtToString(~indent) |> namedString("Select")
   | Insert(x) => indentNamedJsonT(~indent, "Insert", x)
   | Update(x) => indentNamedJsonT(~indent, "Update", x)
   | A_Expr(x) => indentNamedString(~indent, "A_Expr", {j|$x|j}) // TODO: aexprToString
-  | ResTarget(x) => x |> resTargetToString(~indent)
+  | ResTarget(x) =>
+    x |> resTargetToString(~indent) |> namedString("ResTarget")
   | Other(x) => indentNamedJsonT(~indent, "==Other==", x)
+  // |> indentString(~indent);
   };
 }
 
@@ -351,28 +359,24 @@ and resTargetToString = (~indent, {name, indirection, val_, location}) => {
   let indent = indent + 1;
 
   [
-    name |> Option.map(indentNamedString(~indent, "name")),
+    name |> Option.map(namedString("name")),
     indirection
     |> Option.map(
          Array.map(stmtToString(~indent))
          >> Array.String.joinWith(",,")
          >> (x => {j|$x|j})
-         >> indentNamedString(~indent, "indirection"),
+         >> namedString("indirection"),
        ),
     val_
     |> Option.map(
-         stmtToString(~indent)
-         >> indentNamedString(~wrap=true, ~indent, "valx1_"),
+         stmtToString(~indent) >> namedString(~wrap=braces, "valx1_"),
        ),
-    location
-    |> Int.toString
-    |> indentNamedString(~indent, "location")
-    |> Option.pure,
+    location |> Int.toString |> namedString("location") |> Option.pure,
   ]
   |> List.catOptions
-  |> List.map((++)("  "))
-  |> List.String.joinWith("\n")
-  |> indentNamedString(~wrap=true, ~indent, "ResTarget");
+  // |> List.map((++)("  "))
+  |> List.String.joinWith("\n");
+  // |> indentNamedString(~wrap=braces, ~indent, "ResTarget");
 }
 
 and selectStmtToString =
@@ -401,42 +405,42 @@ and selectStmtToString =
     ) => {
   let indent = indent + 1;
 
-  let allTheThings =
-    [
-      distinctClause
-      |> Option.map(
-           Array.map(indentNamedJsonT(~indent, "distinctClause"))
-           >> Array.String.joinWith("\n"),
-         ),
-      intoClause |> Option.map(indentNamedJsonT(~indent, "intoClause")),
-      targetList
-      |> Option.map(
-           Array.map(stmtToString(~indent)) >> Array.String.joinWith(",,\n"),
-         ),
-      fromClause |> Option.map(x => {j|fromClause: $x|j}),
-      whereClause |> Option.map(x => {j|whereClause: $x|j}),
-      groupClause |> Option.map(x => {j|groupClause: $x|j}),
-      havingClause |> Option.map(x => {j|havingClause: $x|j}),
-      windowClause |> Option.map(x => {j|windowClause: $x|j}),
-      valuesLists |> Option.map(x => {j|valuesLists: $x|j}),
-      sortClause |> Option.map(x => {j|sortClause: $x|j}),
-      limitOffset |> Option.map(x => {j|limitOffset: $x|j}),
-      limitCount |> Option.map(x => {j|limitCount: $x|j}),
-      lockingClause |> Option.map(x => {j|lockingClause: $x|j}),
-      withClause |> Option.map(x => {j|withClause: $x|j}),
-      op |> Option.map(x => {j|op: $x|j}),
-      all |> Option.map(x => {j|bool: $x|j}),
-      larg |> Option.map(selectStmtToString(~indent)),
-      rarg |> Option.map(selectStmtToString(~indent)),
-    ]
-    |> List.catOptions
-    |> List.map((++)("  "))
-    |> List.String.joinWith("\n");
-
-  {j|
-Select: {
-$allTheThings
-}|j};
+  // let allTheThings =
+  [
+    distinctClause
+    |> Option.map(
+         Array.map(namedJsonT("distinctClause"))
+         >> Array.String.joinWith("\n"),
+       ),
+    intoClause |> Option.map(namedJsonT("intoClause")),
+    targetList
+    |> Option.map(
+         Array.map(stmtToString(~indent)) >> Array.String.joinWith(",,\n"),
+       ),
+    fromClause |> Option.map(x => {j|fromClause: $x|j}),
+    whereClause |> Option.map(x => {j|whereClause: $x|j}),
+    groupClause |> Option.map(x => {j|groupClause: $x|j}),
+    havingClause |> Option.map(x => {j|havingClause: $x|j}),
+    windowClause |> Option.map(x => {j|windowClause: $x|j}),
+    valuesLists |> Option.map(x => {j|valuesLists: $x|j}),
+    sortClause |> Option.map(x => {j|sortClause: $x|j}),
+    limitOffset |> Option.map(x => {j|limitOffset: $x|j}),
+    limitCount |> Option.map(x => {j|limitCount: $x|j}),
+    lockingClause |> Option.map(x => {j|lockingClause: $x|j}),
+    withClause |> Option.map(x => {j|withClause: $x|j}),
+    op |> Option.map(x => {j|op: $x|j}),
+    all |> Option.map(x => {j|bool: $x|j}),
+    larg |> Option.map(selectStmtToString(~indent)),
+    rarg |> Option.map(selectStmtToString(~indent)),
+  ]
+  |> List.catOptions
+  // |> List.map((++)("wompwomp"))
+  |> List.String.joinWith("\n");
+  // |> indentNamedString(~wrap=braces, ~indent, "Select");
+  //   {j|
+  // Select: {
+  // $allTheThings
+  // }|j};
 };
 
 // let checkStmt: stmt => unit =
@@ -469,3 +473,8 @@ parsed
 |> Js.log;
 
 // Next: ResTarget
+
+// "blah"
+// |> indentNamedString(~indent=5, "testing123")
+// |> indentString(~indent=12)
+// |> Js.log;
