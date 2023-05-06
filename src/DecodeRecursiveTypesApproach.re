@@ -260,10 +260,11 @@ let decodeParsed =
     (rawStmt => {rawStmt: rawStmt}) <$> field("RawStmt", decodeRawStmt)
   );
 
-[@bs.module "pgsql-parser"] external parse: string => 'a = "parse";
+// [@bs.module "pgsql-parser"] external parse: string => 'a = "parse";
 /* TODO: Swap back to the array(Js.Json.t) version
    when done using Js.Dict.t for exploration */
-// external parse: string => array(Js.Json.t) = "parse";
+[@bs.module "pgsql-parser"]
+external parse: string => array(Js.Json.t) = "parse";
 
 let testExample = {|
   SELECT
@@ -341,47 +342,58 @@ let namedJsonT = (~wrap=?, name: string, json: Js.Json.t) =>
 let indentNamedJsonT = (~indent, name: string, json: Js.Json.t) =>
   namedJsonT(name, json) |> indentString(~indent);
 
-let rec stmtToString = (~indent, stmt) => {
-  // let indent = indent + 1;
-  switch (stmt) {
-  | Select(x) => x |> selectStmtToString(~indent) |> namedString("Select")
-  | Insert(x) => indentNamedJsonT(~indent, "Insert", x)
-  | Update(x) => indentNamedJsonT(~indent, "Update", x)
-  | A_Expr(x) => indentNamedString(~indent, "A_Expr", {j|$x|j}) // TODO: aexprToString
-  | ResTarget(x) =>
-    x |> resTargetToString(~indent) |> namedString("ResTarget")
-  | Other(x) => indentNamedJsonT(~indent, "==Other==", x)
-  // |> indentString(~indent);
-  };
-}
+let rec encodeAExpr = ({kind, name, lexpr, rexpr}) =>
+  Encode.(
+    obj([
+      ("kind", kind |> option(id)),
+      ("name", name |> option(id)),
+      ("lexpr", lexpr |> option(id)),
+      ("rexpr", rexpr |> option(id)),
+    ])
+  )
 
-and resTargetToString = (~indent, {name, indirection, val_, location}) => {
-  let indent = indent + 1;
+and encodeValue = value =>
+  Encode.(
+    obj([
+      switch (value) {
+      | String(x) => ("String", x |> id)
+      | Int(x) => ("Integer", x |> id)
+      | Float(x) => ("Float", x |> id)
+      | BitString(x) => ("BitString", x |> id)
+      | Null => ("Null", null)
+      },
+    ])
+  )
 
-  [
-    name |> Option.map(namedString("name")),
-    indirection
-    |> Option.map(
-         Array.map(stmtToString(~indent))
-         >> Array.String.joinWith(",,")
-         >> (x => {j|$x|j})
-         >> namedString("indirection"),
-       ),
-    val_
-    |> Option.map(
-         stmtToString(~indent) >> namedString(~wrap=braces, "valx1_"),
-       ),
-    location |> Int.toString |> namedString("location") |> Option.pure,
-  ]
-  |> List.catOptions
-  // |> List.map((++)("  "))
-  |> List.String.joinWith("\n");
-  // |> indentNamedString(~wrap=braces, ~indent, "ResTarget");
-}
+and encodeAConst = ({val_, location}) =>
+  Encode.(
+    obj([
+      ("val", val_ |> option(encodeValue)),
+      ("location", location |> option(int)),
+    ])
+  )
 
-and selectStmtToString =
+and encodeResTarget = ({name, indirection, val_, location}) =>
+  Encode.(
+    obj([
+      ("name", name |> option(string)),
+      ("indirection", indirection |> option(array(encodeStmt))),
+      ("val", val_ |> option(encodeStmt)),
+      ("location", location |> int),
+    ])
+  )
+
+and encodeWithClause = ({ctes, recursive, location}) =>
+  Encode.(
+    obj([
+      ("ctes", ctes |> option(array(encodeStmt))),
+      ("recursive", recursive |> bool),
+      ("location", location |> int),
+    ])
+  )
+
+and encodeSelectStmt =
     (
-      ~indent,
       {
         distinctClause,
         intoClause,
@@ -402,79 +414,86 @@ and selectStmtToString =
         larg,
         rarg,
       },
-    ) => {
-  let indent = indent + 1;
+    ) =>
+  Encode.(
+    obj([
+      ("distinctClause", distinctClause |> option(array(id))),
+      ("intoClause", intoClause |> option(id)),
+      ("targetList", targetList |> option(array(encodeStmt))),
+      ("fromClause", fromClause |> option(array(id))),
+      ("whereClause", whereClause |> option(encodeStmt)),
+      ("groupClause", groupClause |> option(array(id))),
+      ("havingClause", havingClause |> option(id)),
+      ("windowClause", windowClause |> option(array(id))),
+      ("valuesLists", valuesLists |> option(array(id))),
+      ("sortClause", sortClause |> option(array(id))),
+      ("limitOffset", limitOffset |> option(id)),
+      ("limitCount", limitCount |> option(encodeStmt)),
+      ("lockingClause", lockingClause |> option(array(id))),
+      ("withClause", withClause |> option(encodeWithClause)),
+      ("op", op |> option(id)),
+      ("all", all |> option(bool)),
+      ("larg", larg |> option(encodeSelectStmt)),
+      ("rarg", rarg |> option(encodeSelectStmt)),
+    ])
+  )
 
-  // let allTheThings =
-  [
-    distinctClause
-    |> Option.map(
-         Array.map(namedJsonT("distinctClause"))
-         >> Array.String.joinWith("\n"),
-       ),
-    intoClause |> Option.map(namedJsonT("intoClause")),
-    targetList
-    |> Option.map(
-         Array.map(stmtToString(~indent)) >> Array.String.joinWith(",,\n"),
-       ),
-    fromClause |> Option.map(x => {j|fromClause: $x|j}),
-    whereClause |> Option.map(x => {j|whereClause: $x|j}),
-    groupClause |> Option.map(x => {j|groupClause: $x|j}),
-    havingClause |> Option.map(x => {j|havingClause: $x|j}),
-    windowClause |> Option.map(x => {j|windowClause: $x|j}),
-    valuesLists |> Option.map(x => {j|valuesLists: $x|j}),
-    sortClause |> Option.map(x => {j|sortClause: $x|j}),
-    limitOffset |> Option.map(x => {j|limitOffset: $x|j}),
-    limitCount |> Option.map(x => {j|limitCount: $x|j}),
-    lockingClause |> Option.map(x => {j|lockingClause: $x|j}),
-    withClause |> Option.map(x => {j|withClause: $x|j}),
-    op |> Option.map(x => {j|op: $x|j}),
-    all |> Option.map(x => {j|bool: $x|j}),
-    larg |> Option.map(selectStmtToString(~indent)),
-    rarg |> Option.map(selectStmtToString(~indent)),
-  ]
-  |> List.catOptions
-  // |> List.map((++)("wompwomp"))
-  |> List.String.joinWith("\n");
-  // |> indentNamedString(~wrap=braces, ~indent, "Select");
-  //   {j|
-  // Select: {
-  // $allTheThings
-  // }|j};
-};
+and encodeStmt = stmt =>
+  Encode.(
+    obj([
+      switch (stmt) {
+      | Select(x) => ("SelectStmt", x |> encodeSelectStmt)
+      | Insert(x) => ("InsertStmt", x |> id)
+      | Update(x) => ("UpdateStmt", x |> id)
+      | A_Expr(x) => ("A_Expr", x |> encodeAExpr)
+      | ResTarget(x) => ("ResTarget", x |> encodeResTarget)
+      | Other(x) => ("==OTHER/NYI==", x |> id)
+      },
+    ])
+  );
 
-// let checkStmt: stmt => unit =
-//   fun
-//   | Select(x) => Js.log2("Select", x)
-//   | Insert(x) => Js.log2("Insert", x)
-//   | Update(x) => Js.log2("Update", x)
-//   | A_Expr(x) => Js.log2("A_Expr", x)
-//   | Other(x) => Js.log2("Other", x);
+let encodeRawStmt = ({stmt, stmt_len, stmt_location}) =>
+  Encode.(
+    obj([
+      ("stmt", stmt |> encodeStmt),
+      ("stmt_len", stmt_len |> int),
+      ("stmt_location", stmt_location |> int),
+    ])
+  );
+
+let encodeParsed = ({rawStmt}) =>
+  Encode.(obj([("RawStmt", rawStmt |> encodeRawStmt)]));
+
+external jsonToDict: Js.Json.t => Js.Dict.t(Js.Json.t) = "%identity";
+
+let get: (string, Js.Dict.t(Js.Json.t)) => Js.Dict.t(Js.Json.t) =
+  (str, dict) => Js.Dict.unsafeGet(dict, str) |> jsonToDict;
 
 parsed
-|> Array.forEach(
-     decodeParsed
-     >> Result.fold(
-          Decode_ParseError.failureToDebugString >> Js.log2(_, "Fail"), x =>
-          x.rawStmt.stmt |> stmtToString(~indent=-1) |> Js.log
-        ),
-   );
-
-Js.log("\n\n========\n\n");
-
-// parsed |> Array.forEach(Js.Dict.get(_, "RawStmt") >> Js.log);
-parsed
+|> Array.map(stmt =>
+     Encode.(
+       obj([
+         stmt
+         |> decodeParsed
+         |> Result.fold(
+              err =>
+                (
+                  "encode/decode - FAIL",
+                  err |> Decode_ParseError.failureToDebugString |> string,
+                ),
+              yay =>
+                ("encode/decode - SUCCESS", yay.rawStmt.stmt |> encodeStmt),
+            ),
+         (
+           "original",
+           stmt |> jsonToDict |> get("RawStmt") |> get("stmt") |> dict(id),
+         ),
+       ])
+     )
+     |> Js.Json.stringifyWithSpace(_, 2)
+   )
 |> Array.head
 |> Option.getOrThrow
-|> Js.Dict.unsafeGet(_, "RawStmt")
-|> Js.Dict.unsafeGet(_, "stmt")
-|> Js.Dict.unsafeGet(_, "SelectStmt")
-|> Js.Dict.unsafeGet(_, "targetList")
 |> Js.log;
 
-// Next: ResTarget
-
-// "blah"
-// |> indentNamedString(~indent=5, "testing123")
-// |> indentString(~indent=12)
-// |> Js.log;
+/* TODO: replace above using diffing from Compare module */
