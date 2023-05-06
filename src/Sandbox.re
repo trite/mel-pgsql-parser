@@ -27,3 +27,16 @@ let test = test |> Js.Json.stringifyWithSpace(_, 2);
 |> Js.log;
 
 String.repeat(-1, "blah") |> (x => {j|<$x>|j}) |> Js.log;
+
+Js.log(Colors.green("green") ++ " text");
+Js.log(Colors.red("red") ++ " text");
+Js.log(Colors.grey("grey") ++ " text");
+
+open Compare;
+
+let oldStr = "blah stuff and things";
+
+let newStr = "blarg stuff and more stuff";
+
+diffChars(oldStr, newStr) |> applyAndMerge |> (++)("diffChars: ") |> Js.log;
+diffWords(oldStr, newStr) |> applyAndMerge |> (++)("diffWords: ") |> Js.log;
