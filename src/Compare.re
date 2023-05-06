@@ -49,20 +49,23 @@ external diffTrimmedLines: (string, string) => array(changeRaw) =
 let diffTrimmedLines = (o, n) => diffTrimmedLines(o, n) |> convertChange;
 
 [@bs.module "diff"]
-external diffJson: (string, string) => array(changeRaw) = "diffJson";
-let diffJson = (o, n) => diffJson(o, n) |> convertChange;
+external diffJsonString: (string, string) => array(changeRaw) = "diffJson";
+let diffJsonString = (o, n) => diffJsonString(o, n) |> convertChange;
+
+[@bs.module "diff"]
+external diffJsonT: (Js.Json.t, Js.Json.t) => array(changeRaw) = "diffJson";
+let diffJsonT = (o, n) => diffJsonT(o, n) |> convertChange;
 
 [@bs.module "diff"]
 external diffArrays: (string, string) => array(changeRaw) = "diffArrays";
 let diffArrays = (o, n) => diffArrays(o, n) |> convertChange;
 
-let applyColors =
-  Array.map((change: change) =>
-    switch (change) {
+let colorize =
+  Array.map(
+    fun
     | Added({count: _, value}) => Colors.green(value)
     | Removed({count: _, value}) => Colors.red(value)
-    | Unchanged({count: _, value}) => Colors.grey(value)
-    }
+    | Unchanged({count: _, value}) => Colors.grey(value),
   );
 
-let applyAndMerge = applyColors >> Array.String.join;
+let colorizeAndMerge = colorize >> Array.String.join;

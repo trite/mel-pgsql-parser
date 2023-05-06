@@ -38,5 +38,12 @@ let oldStr = "blah stuff and things";
 
 let newStr = "blarg stuff and more stuff";
 
-diffChars(oldStr, newStr) |> applyAndMerge |> (++)("diffChars: ") |> Js.log;
-diffWords(oldStr, newStr) |> applyAndMerge |> (++)("diffWords: ") |> Js.log;
+diffChars(oldStr, newStr)
+|> colorizeAndMerge
+|> (++)("diffChars: ")
+|> Js.log;
+
+diffWords(oldStr, newStr)
+|> colorizeAndMerge
+|> (++)("diffWords: ")
+|> Js.log;
