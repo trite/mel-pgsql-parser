@@ -1,1 +1,9 @@
-(subdir node_modules)
+; (subdir node_modules)
+
+(dirs :standard __tests__)
+
+(subdir
+ node_modules/@glennsl/bs-jest/src
+ (library
+  (name jest)
+  (modes melange)))

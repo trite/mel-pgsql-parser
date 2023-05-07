@@ -4,5 +4,18 @@
     "relude": "trite/relude#dunification",
     "diff": "^5.1.0",
     "colors": "^1.4.0"
+  },
+  "devDependencies": {
+    "@glennsl/bs-jest": "^0.7.0"
+  },
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watchAll"
+  },
+  "jest": {
+    "verbose": false,
+    "testMatch": [
+      "<rootDir>/_build/default/__tests__/output/__tests__/**/*_test.[jt]s?(x)"
+    ]
   }
 }
