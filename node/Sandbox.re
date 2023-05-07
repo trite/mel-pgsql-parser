@@ -1,3 +1,5 @@
+open Mel_pgsql_parser;
+
 let test = [%raw
   {j|
   {
@@ -46,4 +48,21 @@ diffChars(oldStr, newStr)
 diffWords(oldStr, newStr)
 |> colorizeAndMerge
 |> (++)("diffWords: ")
+|> Js.log;
+
+Js.log("========");
+
+let testThing = {j|
+  SELECT
+    *
+  FROM
+    blah
+  ;
+  |j};
+
+testThing
+|> Parse.parse
+|> Array.head
+|> Option.getOrThrow
+|> Js.Json.stringifyWithSpace(_, 2)
 |> Js.log;

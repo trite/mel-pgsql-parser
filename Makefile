@@ -27,11 +27,11 @@ install: ## Install development dependencies
 
 .PHONY: build
 build: ## Build the project
-	$(DUNE) build @node @jesttest
+	$(DUNE) build @output @node @jesttest
 
 .PHONY: build_verbose
 build_verbose: ## Build the project
-	$(DUNE) build --verbose @node @jesttest
+	$(DUNE) build --verbose @output @node @jesttest
 
 .PHONY: serve
 serve: ## Serve the application with a local HTTP server
@@ -55,7 +55,7 @@ format-check: ## Checks if format is correct
 
 .PHONY: watch
 watch: ## Watch for the filesystem and rebuild on every change
-	$(DUNE) build --watch @node @jesttest
+	$(DUNE) build --watch @output @node @jesttest
 
 .PHONY: test
 test:
