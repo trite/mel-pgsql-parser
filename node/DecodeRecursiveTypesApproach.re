@@ -1,3 +1,4 @@
+open Mel_pgsql_parser;
 module E = EncodeParsed;
 module D = DecodeParsed;
 
@@ -44,21 +45,25 @@ let get: (string, Js.Dict.t(Js.Json.t)) => Js.Dict.t(Js.Json.t) =
 
 parsed
 |> Array.map(stmt =>
-     E.obj([
+     Encode.obj([
        stmt
        |> D.decodeParsed
        |> Result.fold(
             err =>
               (
                 "encode/decode - FAIL",
-                err |> Decode_ParseError.failureToDebugString |> E.string,
+                err |> Decode_ParseError.failureToDebugString |> Encode.string,
               ),
-            (yay: Parse.outerRawStmt) =>
-              ("encode/decode - SUCCESS", yay.rawStmt.stmt |> E.encodeStmt),
+            (yay: AstTypes.outerRawStmt) =>
+              ("encode/decode - SUCCESS", yay.rawStmt.stmt |> E.encodeNode),
           ),
        (
          "original",
-         stmt |> jsonToDict |> get("RawStmt") |> get("stmt") |> E.dict(id),
+         stmt
+         |> jsonToDict
+         |> get("RawStmt")
+         |> get("stmt")
+         |> Encode.dict(id),
        ),
      ])
      |> Js.Json.stringifyWithSpace(_, 2)

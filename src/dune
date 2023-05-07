@@ -3,9 +3,6 @@
 (library
  (name mel_pgsql_parser)
  (public_name mel-pgsql-parser)
- ; (target node)
- ; (alias node)
- ; (module_systems commonjs)
  (libraries relude)
  (modes melange)
  ; Warning 30 is an issue since I'm using recursive types

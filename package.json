@@ -1,12 +1,12 @@
 {
   "dependencies": {
     "pgsql-parser": "^13.5.0",
-    "relude": "trite/relude#dunification",
-    "diff": "^5.1.0",
-    "colors": "^1.4.0"
+    "relude": "trite/relude#dunification"
   },
   "devDependencies": {
-    "@glennsl/bs-jest": "^0.7.0"
+    "@glennsl/bs-jest": "^0.7.0",
+    "diff": "^5.1.0",
+    "colors": "^1.4.0"
   },
   "scripts": {
     "test": "jest",

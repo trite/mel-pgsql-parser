@@ -59,8 +59,8 @@ describe("blah", () => {
   )
 });
 
-describe("Decodes as expected", () => {
-  test("TODO: name later", () =>
+describe("Parses as expected", () => {
+  test("Compare parsed output of simple select query", () =>
     expect(
       testThing
       |> Parse.parse
@@ -70,4 +70,48 @@ describe("Decodes as expected", () => {
     )
     |> toEqual(testThingExpected)
   )
+});
+
+describe("Parse |> decode |> update |> encode |> deparse", () => {
+  test("Update from clause of simple query", () => {
+    let update: AstTypes.outerRawStmt => AstTypes.outerRawStmt =
+      AstModify.(
+        updateOuterRawStmt(
+          ~rawStmt=
+            updateRawStmt(
+              ~stmt=
+                updateNode(
+                  ~update_select=
+                    updateSelectStmt(
+                      ~fromClause=
+                        Option.map(
+                          Array.map(
+                            updateNode(
+                              ~update_range_var=
+                                updateRangeVar(~relName=_ =>
+                                  Some("something_else")
+                                ),
+                            ),
+                          ),
+                        ),
+                    ),
+                ),
+            ),
+        )
+      );
+
+    expect(
+      "SELECT * FROM blah;"
+      |> Parse.parse
+      |> Array.map(
+           DecodeParsed.decodeParsed
+           >> Result.getOk
+           >> Option.getOrThrow
+           >> update
+           >> EncodeParsed.encodeParsed,
+         )
+      |> Parse.deparse,
+    )
+    |> toEqual("SELECT * FROM something_else;");
+  })
 });

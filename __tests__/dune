@@ -2,8 +2,8 @@
 
 (melange.emit
  (target output)
- ; TODO: what do I need to do so that "alias test"
- ;   doesn't try to build Relude's tests too?
+ ; TODO: what do I need to do so that "alias test" doesn't 
+ ;   cause the project to try to build Relude's tests too?
  (alias jesttest)
  (libraries mel_pgsql_parser jest)
  (module_systems commonjs)
