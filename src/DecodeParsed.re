@@ -1,7 +1,7 @@
 module Decode = Decode.AsResult.OfParseError;
 
 // open Decode;
-open Decode;
+include Decode;
 open AstTypes;
 
 let (<$>) = map;

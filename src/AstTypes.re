@@ -10,7 +10,7 @@ and aConst = {
 
 and aExpr = {
   kind: option(Js.Json.t),
-  name: option(Js.Json.t),
+  name: option(array(node)),
   lexpr: option(Js.Json.t),
   rexpr: option(Js.Json.t),
 }
@@ -31,17 +31,6 @@ and accessPriv = {
   cols: option(array(node)),
 }
 
-// and aggref = {
-//   aggfnoid: Js.Json.t,
-//   aggtype: Js.Json.t,
-//   aggcollid: Js.Json.t,
-//   inputcollid: Js.Json.t,
-
-// }
-
-/* TODO: "value" values are wrapped in an extra layer
-   that needs some discovery done
-     ex: "val":{"Integer":{"ival":50}} */
 and value =
   | String(Js.Json.t)
   | Int(Js.Json.t)

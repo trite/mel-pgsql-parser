@@ -48,23 +48,19 @@ and encodeValue = value =>
   ])
 
 and encodeResTarget = ({name, indirection, val_, location}) =>
-  Encode.(
-    obj([
-      ("name", name |> option(string)),
-      ("indirection", indirection |> option(array(encodeNode))),
-      ("val", val_ |> option(encodeNode)),
-      ("location", location |> int),
-    ])
-  )
+  obj([
+    ("name", name |> option(string)),
+    ("indirection", indirection |> option(array(encodeNode))),
+    ("val", val_ |> option(encodeNode)),
+    ("location", location |> int),
+  ])
 
 and encodeWithClause = ({ctes, recursive, location}) =>
-  Encode.(
-    obj([
-      ("ctes", ctes |> option(array(encodeNode))),
-      ("recursive", recursive |> bool),
-      ("location", location |> int),
-    ])
-  )
+  obj([
+    ("ctes", ctes |> option(array(encodeNode))),
+    ("recursive", recursive |> bool),
+    ("location", location |> int),
+  ])
 
 and encodeSelectStmt =
     (
@@ -89,28 +85,26 @@ and encodeSelectStmt =
         rarg,
       },
     ) =>
-  Encode.(
-    obj([
-      ("distinctClause", distinctClause |> option(array(id))),
-      ("intoClause", intoClause |> option(id)),
-      ("targetList", targetList |> option(array(encodeNode))),
-      ("fromClause", fromClause |> option(array(encodeNode))),
-      ("whereClause", whereClause |> option(encodeNode)),
-      ("groupClause", groupClause |> option(array(id))),
-      ("havingClause", havingClause |> option(id)),
-      ("windowClause", windowClause |> option(array(id))),
-      ("valuesLists", valuesLists |> option(array(id))),
-      ("sortClause", sortClause |> option(array(id))),
-      ("limitOffset", limitOffset |> option(id)),
-      ("limitCount", limitCount |> option(encodeNode)),
-      ("lockingClause", lockingClause |> option(array(id))),
-      ("withClause", withClause |> option(encodeWithClause)),
-      ("op", op |> option(id)),
-      ("all", all |> option(bool)),
-      ("larg", larg |> option(encodeSelectStmt)),
-      ("rarg", rarg |> option(encodeSelectStmt)),
-    ])
-  )
+  obj([
+    ("distinctClause", distinctClause |> option(array(id))),
+    ("intoClause", intoClause |> option(id)),
+    ("targetList", targetList |> option(array(encodeNode))),
+    ("fromClause", fromClause |> option(array(encodeNode))),
+    ("whereClause", whereClause |> option(encodeNode)),
+    ("groupClause", groupClause |> option(array(id))),
+    ("havingClause", havingClause |> option(id)),
+    ("windowClause", windowClause |> option(array(id))),
+    ("valuesLists", valuesLists |> option(array(id))),
+    ("sortClause", sortClause |> option(array(id))),
+    ("limitOffset", limitOffset |> option(id)),
+    ("limitCount", limitCount |> option(encodeNode)),
+    ("lockingClause", lockingClause |> option(array(id))),
+    ("withClause", withClause |> option(encodeWithClause)),
+    ("op", op |> option(id)),
+    ("all", all |> option(bool)),
+    ("larg", larg |> option(encodeSelectStmt)),
+    ("rarg", rarg |> option(encodeSelectStmt)),
+  ])
 
 and encodeAlias = ({aliasName, colNames}) =>
   obj([
@@ -142,32 +136,28 @@ and encodeColumnRef = ({fields, location}) =>
 //   I suspect that just having everything in the `stmt` type as Js.Json.t until implemented should work
 
 and encodeNode = stmt =>
-  Encode.(
-    obj([
-      switch (stmt) {
-      | A_ArrayExpr(x) => ("A_ArrayExpr", x |> encodeAArrayExpr)
-      | A_Const(x) => ("A_Const", x |> encodeAConst)
-      | A_Expr(x) => ("A_Expr", x |> encodeAExpr)
-      | A_Star => ("A_Star", encodeAStar)
-      | Select(x) => ("SelectStmt", x |> encodeSelectStmt)
-      | Insert(x) => ("InsertStmt", x |> id)
-      | Update(x) => ("UpdateStmt", x |> id)
-      | ResTarget(x) => ("ResTarget", x |> encodeResTarget)
-      | RangeVar(x) => ("RangeVar", x |> encodeRangeVar)
-      | ColumnRef(x) => ("ColumnRef", x |> encodeColumnRef)
-      | Other(x) => ("==OTHER/NYI==", x |> id)
-      },
-    ])
-  );
+  obj([
+    switch (stmt) {
+    | A_ArrayExpr(x) => ("A_ArrayExpr", x |> encodeAArrayExpr)
+    | A_Const(x) => ("A_Const", x |> encodeAConst)
+    | A_Expr(x) => ("A_Expr", x |> encodeAExpr)
+    | A_Star => ("A_Star", encodeAStar)
+    | Select(x) => ("SelectStmt", x |> encodeSelectStmt)
+    | Insert(x) => ("InsertStmt", x |> id)
+    | Update(x) => ("UpdateStmt", x |> id)
+    | ResTarget(x) => ("ResTarget", x |> encodeResTarget)
+    | RangeVar(x) => ("RangeVar", x |> encodeRangeVar)
+    | ColumnRef(x) => ("ColumnRef", x |> encodeColumnRef)
+    | Other(x) => ("==OTHER/NYI==", x |> id)
+    },
+  ]);
 
 let encodeRawStmt = ({stmt, stmt_len, stmt_location}) =>
-  Encode.(
-    obj([
-      ("stmt", stmt |> encodeNode),
-      ("stmt_len", stmt_len |> int),
-      ("stmt_location", stmt_location |> int),
-    ])
-  );
+  obj([
+    ("stmt", stmt |> encodeNode),
+    ("stmt_len", stmt_len |> int),
+    ("stmt_location", stmt_location |> int),
+  ]);
 
 let encodeParsed = ({rawStmt}) =>
-  Encode.(obj([("RawStmt", rawStmt |> encodeRawStmt)]));
+  obj([("RawStmt", rawStmt |> encodeRawStmt)]);
