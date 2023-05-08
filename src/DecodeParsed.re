@@ -18,18 +18,18 @@ let rec decodeAArrayExpr = json =>
 
 and decodeAConst = json =>
   json
-  |> Decode.(
-       ((val_, location) => {val_, location})
-       <$> optionalField("val", decodeValue)
-       <*> optionalField("location", intFromNumber)
-     )
+  |> (
+    ((val_, location) => {val_, location})
+    <$> optionalField("val", decodeValue)
+    <*> optionalField("location", intFromNumber)
+  )
 
 and decodeAExpr = json =>
   json
   |> (
     ((kind, name, lexpr, rexpr) => {kind, name, lexpr, rexpr})
     <$> optionalField("kind", okJson)
-    <*> optionalField("name", okJson)
+    <*> optionalField("name", array(decodeNode))
     <*> optionalField("lexpr", okJson)
     <*> optionalField("rexpr", okJson)
   )

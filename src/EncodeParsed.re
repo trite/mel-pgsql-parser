@@ -22,7 +22,7 @@ and encodeAConst = ({val_, location}: aConst) =>
 and encodeAExpr = ({kind, name, lexpr, rexpr}) =>
   obj([
     ("kind", kind |> option(id)),
-    ("name", name |> option(id)),
+    ("name", name |> option(array(encodeNode))),
     ("lexpr", lexpr |> option(id)),
     ("rexpr", rexpr |> option(id)),
   ])

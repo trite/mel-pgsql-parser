@@ -1,9 +1,6 @@
 open Jest;
 open Expect;
-// open DecodeParsed;
 open Mel_pgsql_parser;
-// open DecodeParsed;
-// open Relude;
 
 let testThing = {j|
   SELECT
