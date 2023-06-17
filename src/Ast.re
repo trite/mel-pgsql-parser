@@ -1,3 +1,21 @@
+/*
+
+   This file is the start of mapping out the AST produced by the `pgsql-parser`
+   library. It maps out a good majority of the AST, but not all, and a good chunk
+   was written using Copilot, which ended up being able to handle most of the boiler-plate
+   code. It definitely did not get some field names right, and I also definitely
+   did not catch them all. There are some type issues still, and a few TODO's and
+   such remaining as well. I don't currently plan to flesh this one out much more,
+   it adds a larger amount of compile time than I like to use this recursive module
+   pattern. VSCode's OCaml plugin also runs painfully slow for me quite often
+   while working in this file, requiring frequent restarts of the LSP.
+
+   It seems like this might cooperate with the tooling better to use recursive
+   types only to build out the AST, then writing functions like encode and decode
+   separately.
+
+ */
+
 module type AstType = {
   type t;
 
